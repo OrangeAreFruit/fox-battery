@@ -9,10 +9,8 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { InjectionTracker } from './modules/sdt/injection.js';
 
 import {
-  BatteryDrawIcon,
-  BInner,
-  BStatusStyle,
-} from './modules/drawicon.js';
+  FoxBatteryIcon,
+} from './modules/fox-widget.js';
 import { PowerManagerProxyMock } from './modules/mock.js';
 import { debugMode } from './modules/util.js';
 
@@ -55,7 +53,7 @@ export default class BatteryIndicatorIcon extends Extension {
       if (this._proxy.IsPresent) {
         this._patch(sysIndicator, powerToggle);
 
-        // Update properties of BatteryDrawIcons
+        // Update properties of the fox battery icons
         const height = this._theme.scaleFactor * 16; // panel.js::PANEL_ICON_SIZE === 16
         // Fixed horizontal cartoon fox icon, aspect ratio 2:1
         const width = Math.round(height * 2);
@@ -66,17 +64,11 @@ export default class BatteryIndicatorIcon extends Extension {
           height,
           width,
           percentage,
-          statusStyle: BStatusStyle.BUDDY,
-          inner: charging ? BInner.CHARGING : BInner.EMPTY,
+          charging,
           visible: true,
-          vertical: false,
         };
         sysIndicator._drawicon.set(props);
-        powerToggle._drawicon.set({
-          ...props,
-          // Percentage text is always shown next to powerToggle
-          inner: charging ? BInner.CHARGING : BInner.EMPTY,
-        });
+        powerToggle._drawicon.set(props);
         // Percentage label visibility is controlled by the system setting
         // "Show battery percentage" (org.gnome.desktop.interface)
         sysIndicator._percentageLabel.set_style('');
@@ -89,7 +81,7 @@ export default class BatteryIndicatorIcon extends Extension {
           const dbgIcon = sysIndicator._drawicondbg;
           dbgIcon.set({
             ...props,
-            inner: BInner.CHARGING,
+            charging: true,
             height: 256,
             width: 512,
           });
@@ -155,9 +147,8 @@ export default class BatteryIndicatorIcon extends Extension {
 
   _patch(sysIndicator, powerToggle) {
     if (!('_drawicon' in sysIndicator)) {
-      sysIndicator._drawicon = new BatteryDrawIcon({
+      sysIndicator._drawicon = new FoxBatteryIcon({
         style_class: 'battery-indicator',
-        idolWidget: sysIndicator._indicator,
       });
 
       sysIndicator.replace_child(
@@ -165,14 +156,13 @@ export default class BatteryIndicatorIcon extends Extension {
         sysIndicator._drawicon
       );
 
-      powerToggle._drawicon = new BatteryDrawIcon({
+      powerToggle._drawicon = new FoxBatteryIcon({
         style_class: 'battery-quick-toggle',
-        idolWidget: powerToggle._icon,
       });
       powerToggle._box.replace_child(powerToggle._icon, powerToggle._drawicon);
 
       if (debugMode) {
-        sysIndicator._drawicondbg = new BatteryDrawIcon({
+        sysIndicator._drawicondbg = new FoxBatteryIcon({
           style_class: 'battery-indicator',
         });
         Main.uiGroup.add_child(sysIndicator._drawicondbg);
