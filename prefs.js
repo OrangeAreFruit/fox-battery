@@ -14,6 +14,11 @@ import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/ex
 const LIMIT_SCRIPT = '/usr/local/bin/battery-limit.sh';
 const SCHEMA_ID = 'org.gnome.shell.extensions.battery-buddy';
 
+// 未安装系统脚本时，引导用户安装的提示命令
+const INSTALL_CMD =
+    'git clone https://github.com/OrangeAreFruit/fox-battery.git && ' +
+    'cd fox-battery/battery-limit && sudo bash install.sh';
+
 // 充电上限选项（纯数字，无需翻译）
 const OPTIONS = [
     {label: '100%', value: 0},
@@ -46,6 +51,11 @@ const I18N = {
         stFull: '已充满',
         setting: '正在设置',
         fail: '设置失败',
+        missingTitle: '未安装充电控制脚本',
+        missingDesc: '充电上限需要系统脚本，请先安装（见项目 README）',
+        missingStatus: '请先安装充电控制脚本',
+        copyCmd: '复制安装命令',
+        copied: '已复制到剪贴板',
     },
     en: {
         pageTitle: 'General',
@@ -63,6 +73,11 @@ const I18N = {
         stFull: 'Full',
         setting: 'Setting',
         fail: 'Failed to set',
+        missingTitle: 'Charge limit script not installed',
+        missingDesc: 'The charge limit needs a system script. Install it first (see the project README).',
+        missingStatus: 'Install the charge limit script first',
+        copyCmd: 'Copy install command',
+        copied: 'Copied to clipboard',
     },
 };
 
@@ -140,6 +155,30 @@ export default class BatteryBuddyPreferences extends ExtensionPreferences {
         group.add(combo);
         group.add(statusRow);
 
+        // 检测系统脚本是否安装（prefs 是独立进程，同步检测无阻塞问题）
+        this._scriptMissing =
+            !Gio.File.new_for_path(LIMIT_SCRIPT).query_exists(null);
+        if (this._scriptMissing) {
+            // 未安装：禁用充电上限，引导用户先装脚本
+            combo.sensitive = false;
+            const installRow = new Adw.ActionRow({
+                title: t('missingTitle'),
+                subtitle: t('missingDesc'),
+            });
+            const copyBtn = new Gtk.Button({
+                label: t('copyCmd'),
+                valign: Gtk.Align.CENTER,
+            });
+            copyBtn.connect('clicked', () => {
+                this._window.get_display()
+                    .get_clipboard()
+                    .set_text(INSTALL_CMD);
+                copyBtn.label = t('copied');
+            });
+            installRow.add_suffix(copyBtn);
+            group.add(installRow);
+        }
+
         const langCombo = new Adw.ComboRow({
             title: t('langTitle'),
             model: new Gtk.StringList({
@@ -167,41 +206,56 @@ export default class BatteryBuddyPreferences extends ExtensionPreferences {
             this._build();
         });
 
-        // 充电上限：防抖（350ms）+ 串行执行，避免多个 pkexec 排队写 EC
-        combo.connect('notify::selected', () => {
-            if (this._updating)
-                return;
-            if (this._applyDebounce)
-                GLib.source_remove(this._applyDebounce);
-            this._applyDebounce = GLib.timeout_add(
+        if (this._scriptMissing) {
+            // 未安装脚本：状态行显示引导提示（仍刷新电量），不调用 pkexec
+            statusRow.subtitle = t('missingStatus');
+            this._refreshTimer = GLib.timeout_add_seconds(
                 GLib.PRIORITY_DEFAULT,
-                350,
+                2,
                 () => {
-                    this._applyDebounce = 0;
-                    const opt = OPTIONS[combo.selected];
-                    if (!opt)
-                        return GLib.SOURCE_REMOVE;
-                    // 乐观更新：先给即时反馈，再串行执行命令
-                    statusRow.subtitle = `${t('setting')} ${opt.label}…`;
-                    this._applyChain = this._applyChain.then(
-                        () => this._apply(opt, combo, statusRow)
-                    );
-                    return GLib.SOURCE_REMOVE;
+                    statusRow.subtitle =
+                        `${t('missingStatus')}    ` +
+                        `${t('battery')}: ${this._readBatteryText()}`;
+                    return GLib.SOURCE_CONTINUE;
                 }
             );
-        });
+        } else {
+            // 充电上限：防抖（350ms）+ 串行执行，避免多个 pkexec 排队写 EC
+            combo.connect('notify::selected', () => {
+                if (this._updating)
+                    return;
+                if (this._applyDebounce)
+                    GLib.source_remove(this._applyDebounce);
+                this._applyDebounce = GLib.timeout_add(
+                    GLib.PRIORITY_DEFAULT,
+                    350,
+                    () => {
+                        this._applyDebounce = 0;
+                        const opt = OPTIONS[combo.selected];
+                        if (!opt)
+                            return GLib.SOURCE_REMOVE;
+                        // 乐观更新：先给即时反馈，再串行执行命令
+                        statusRow.subtitle = `${t('setting')} ${opt.label}…`;
+                        this._applyChain = this._applyChain.then(
+                            () => this._apply(opt, combo, statusRow)
+                        );
+                        return GLib.SOURCE_REMOVE;
+                    }
+                );
+            });
 
-        // 2 秒刷新状态行（电量/充放电实时变化）
-        this._refreshTimer = GLib.timeout_add_seconds(
-            GLib.PRIORITY_DEFAULT,
-            2,
-            () => {
-                this._updateStatusSubtitle(statusRow);
-                return GLib.SOURCE_CONTINUE;
-            }
-        );
+            // 2 秒刷新状态行（电量/充放电实时变化）
+            this._refreshTimer = GLib.timeout_add_seconds(
+                GLib.PRIORITY_DEFAULT,
+                2,
+                () => {
+                    this._updateStatusSubtitle(statusRow);
+                    return GLib.SOURCE_CONTINUE;
+                }
+            );
 
-        await this._refresh(combo, statusRow);
+            await this._refresh(combo, statusRow);
+        }
     }
 
     _updateStatusSubtitle(statusRow) {
