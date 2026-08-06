@@ -56,6 +56,10 @@ const I18N = {
         missingStatus: '请先安装充电控制脚本',
         copyCmd: '复制安装命令',
         copied: '已复制到剪贴板',
+        wifiGroupTitle: 'WiFi 图标',
+        wifiGroupDesc: '替换系统 WiFi 图标（注销重登生效）',
+        wifiReplaceTitle: '启用自定义 WiFi 图标',
+        wifiReplaceSubtitle: '使用狐狸风格的彩色 WiFi 图标',
     },
     en: {
         pageTitle: 'General',
@@ -78,6 +82,10 @@ const I18N = {
         missingStatus: 'Install the charge limit script first',
         copyCmd: 'Copy install command',
         copied: 'Copied to clipboard',
+        wifiGroupTitle: 'WiFi Icon',
+        wifiGroupDesc: 'Replace the system WiFi icon (requires logout/login)',
+        wifiReplaceTitle: 'Enable custom WiFi icon',
+        wifiReplaceSubtitle: 'Use a colorful fox-style WiFi icon',
     },
 };
 
@@ -191,7 +199,26 @@ export default class BatteryBuddyPreferences extends ExtensionPreferences {
         const langGroup = new Adw.PreferencesGroup();
         langGroup.add(langCombo);
 
+        // WiFi 图标替换开关
+        const wifiGroup = new Adw.PreferencesGroup({
+            title: t('wifiGroupTitle'),
+            description: t('wifiGroupDesc'),
+        });
+
+        const wifiSwitch = new Adw.SwitchRow({
+            title: t('wifiReplaceTitle'),
+            subtitle: t('wifiReplaceSubtitle'),
+            active: this._settings.get_boolean('replace-wifi-icon'),
+        });
+
+        wifiSwitch.connect('notify::active', () => {
+            this._settings.set_boolean('replace-wifi-icon', wifiSwitch.active);
+        });
+
+        wifiGroup.add(wifiSwitch);
+
         page.add(group);
+        page.add(wifiGroup);
         page.add(langGroup);
         this._window.add(page);
         this._page = page;
