@@ -1,0 +1,8 @@
+/* Battery Buddy: 允许 sudo 组用户免密通过 pkexec 执行 battery-limit.sh */
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.policykit.exec" &&
+        action.lookup("program") == "/usr/local/bin/battery-limit.sh" &&
+        subject.isInGroup("sudo")) {
+        return polkit.Result.YES;
+    }
+});
