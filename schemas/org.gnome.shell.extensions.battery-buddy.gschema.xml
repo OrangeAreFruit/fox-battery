@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.battery-buddy"
+          path="/org/gnome/shell/extensions/battery-buddy/">
+    <key name="language" type="s">
+      <default>'auto'</default>
+      <summary>Interface language</summary>
+      <description>One of: auto (follow system), zh (Chinese), en (English).</description>
+    </key>
+  </schema>
+</schemalist>

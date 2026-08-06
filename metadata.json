@@ -4,6 +4,7 @@
   "gettext-domain": "battery-buddy",
   "description": "Cute cartoon fox battery indicator with a charge limit preferences window (requires Xiaomi/Redmi WMI).",
   "name": "Battery Buddy",
+  "settings-schema": "org.gnome.shell.extensions.battery-buddy",
   "session-modes": ["unlock-dialog", "user"],
-  "version": 3
+  "version": 4
 }
