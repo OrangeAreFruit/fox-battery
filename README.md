@@ -4,9 +4,25 @@
 
 ![总览](assets/overview.png)
 
+[![GitHub stars](https://img.shields.io/github/stars/OrangeAreFruit/fox-battery?style=social&label=Stars)](https://github.com/OrangeAreFruit/fox-battery)
+[![GitHub issues](https://img.shields.io/github/issues/OrangeAreFruit/fox-battery?style=social&label=Issues)](https://github.com/OrangeAreFruit/fox-battery/issues)
+[![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
+
 **把顶栏的电池，变成一只会说话的小狐狸**
 
-**Fox Battery** 是一款 GNOME Shell 扩展，用可爱的卡通狐狸替换系统默认电池图标，并在设置面板中提供 **充电上限**（80% / 90% / 100%）与 **界面语言** 控制。专为小米 / 红米笔记本设计，基于 **acpi_call + WMI** 实现硬件级充电控制。
+### 一句话介绍
+
+用可爱的卡通狐狸替换 GNOME 顶栏的默认电池图标，打开电脑的第一眼就是好心情。
+
+### 核心能力
+
+- 🦊 **狐狸电池图标**：顶栏 / 快捷设置 / 锁屏三处统一替换，实时显示电量
+- 🔋 **硬件级充电上限**：80% / 90% / 100% 三档一键设置，基于 acpi_call + WMI 直接控制 EC 充电，延长电池寿命
+- 🌐 **多语言设置面板**：跟随系统 / 中文 / 英文，即时切换
+
+### 适合谁
+
+**狐狸图标对所有笔记本都可用**，开箱即用；**充电上限**功能专为 **小米 / 红米笔记本**（Redmi Book 等）设计，基于 acpi_call + WMI 实现硬件级充电控制。
 
 ## 预览
 
@@ -152,6 +168,14 @@ battery-buddy@lanfanqie/
 | 🌐 中英双语界面 | ✅ **已完成** |
 | 🔌 开机 / 插电自动套用 | ✅ **已完成** |
 | ⏳ 更多品牌机型适配 | *计划中* |
+
+## 反馈与支持
+
+如果这个扩展对你有帮助，欢迎：
+
+- ⭐ **点个 Star**：https://github.com/OrangeAreFruit/fox-battery
+- 🐛 **反馈问题**：遇到 Bug、机型不适配或功能建议，请到 [Issues](https://github.com/OrangeAreFruit/fox-battery/issues) 留言，我会尽快回复
+- 💡 **机型适配请求**：你的小米/红米笔记本充电上限不生效？到 [Issues](https://github.com/OrangeAreFruit/fox-battery/issues) 带上你的机型信息发帖
 
 ## 灵感来源与致谢
 
