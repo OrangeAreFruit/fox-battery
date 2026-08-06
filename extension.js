@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import St from 'gi://St';
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import UPowerGlib from 'gi://UPowerGlib';
 
@@ -50,7 +51,7 @@ export default class BatteryIndicatorIcon extends Extension {
     this._proxy = proxy;
     this._theme = St.ThemeContext.get_for_stage(global.stage);
 
-    const update = () => {
+    const update = async () => {
       // 正常模式直接读内核电池状态（绕过 UPower 对"停充"约 20 秒的
       // 延迟判定）；debug 模式沿用 mock proxy 以便观察循环变化。
       const battery = debugMode
@@ -61,7 +62,7 @@ export default class BatteryIndicatorIcon extends Extension {
                 this._proxy.State === UPowerGlib.DeviceState.CHARGING,
             }
           : null
-        : this._readBatteryState();
+        : await this._readBatteryState();
       if (battery) {
         this._patch(sysIndicator, powerToggle);
 
@@ -146,23 +147,60 @@ export default class BatteryIndicatorIcon extends Extension {
 
   // 直接读内核 sysfs，绕过 UPower 对"停充"约 20 秒的延迟判定，
   // 保证 fox 图标与设置窗口文字同步更新。
+  // 异步读取（Gio.File.load_contents_async），避免在 shell 主进程
+  // 做同步 IO（EGO 验证器 EGO-X-004 警告）。
   _readBatteryState() {
-    try {
-      const decoder = new TextDecoder();
-      const [, cap] = GLib.file_get_contents(
-        '/sys/class/power_supply/BAT0/capacity');
-      const [, st] = GLib.file_get_contents(
-        '/sys/class/power_supply/BAT0/status');
-      const percentage = parseInt(decoder.decode(cap).trim(), 10);
-      const status = decoder.decode(st).trim();
-      return {
-        percentage,
-        charging: status === 'Charging',
+    const decoder = new TextDecoder();
+    const capFile = Gio.File.new_for_path(
+      '/sys/class/power_supply/BAT0/capacity');
+    const stFile = Gio.File.new_for_path(
+      '/sys/class/power_supply/BAT0/status');
+
+    return new Promise(resolve => {
+      let cap = null;
+      let st = null;
+      let failed = false;
+
+      const finish = () => {
+        if (failed) {
+          resolve(null);
+          return;
+        }
+        if (cap === null || st === null)
+          return;
+        try {
+          const percentage = parseInt(decoder.decode(cap).trim(), 10);
+          const status = decoder.decode(st).trim();
+          resolve({
+            percentage,
+            charging: status === 'Charging',
+          });
+        } catch (e) {
+          log(`battery-buddy: 解析电池状态失败: ${e}`);
+          resolve(null);
+        }
       };
-    } catch (e) {
-      log(`battery-buddy: 读取电池状态失败: ${e}`);
-      return null;
-    }
+
+      const readFile = (file, setter) => {
+        file.load_contents_async(null, (src, res) => {
+          try {
+            const [, contents] = src.load_contents_finish(res);
+            setter(contents);
+          } catch (e) {
+            failed = true;
+            log(`battery-buddy: 读取电池状态失败: ${e}`);
+          }
+          finish();
+        });
+      };
+
+      readFile(capFile, v => {
+        cap = v;
+      });
+      readFile(stFile, v => {
+        st = v;
+      });
+    });
   }
 
   disable() {
