@@ -2,8 +2,9 @@
   "shell-version": ["45", "46", "47", "48", "49", "50"],
   "uuid": "battery-buddy@lanfanqie",
   "gettext-domain": "battery-buddy",
-  "description": "Cute cartoon fox battery indicator with a charge limit preferences window (requires Xiaomi/Redmi WMI).",
+  "description": "A cute cartoon fox battery icon for the top bar, plus an 80%/90% charge limit option for Xiaomi/Redmi laptops.",
   "name": "Fox Battery",
+  "url": "https://github.com/OrangeAreFruit/fox-battery",
   "settings-schema": "org.gnome.shell.extensions.battery-buddy",
   "session-modes": ["unlock-dialog", "user"],
   "version": 4
