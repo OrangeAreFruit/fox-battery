@@ -111,7 +111,11 @@ function tears() {
 }
 
 function bolt() {
-  return `<path d="M 95 23 L 104 23 L 98.5 30 L 107 30 L 95 43 L 97.5 35 L 89.5 35 Z" fill="${OUTLINE}"/>`;
+  // 放大 + 白色描边：顶栏 16px 下充电状态也要一眼可辨
+  return (
+    `<path d="M 93 21 L 106 21 L 99 30 L 110 30 L 93 45 L 97 35 L 88 35 Z" ` +
+    `fill="${OUTLINE}" stroke="#FFFFFF" stroke-width="2.5" stroke-linejoin="round"/>`
+  );
 }
 
 function faceStyle(charging, percentage) {

@@ -2,8 +2,8 @@
   "shell-version": ["45", "46", "47", "48", "49", "50"],
   "uuid": "battery-buddy@lanfanqie",
   "gettext-domain": "battery-buddy",
-  "description": "Cute cartoon fox battery indicator for the GNOME panel.",
+  "description": "Cute cartoon fox battery indicator with a charge limit preferences window (requires Xiaomi/Redmi WMI).",
   "name": "Battery Buddy",
   "session-modes": ["unlock-dialog", "user"],
-  "version": 2
+  "version": 3
 }

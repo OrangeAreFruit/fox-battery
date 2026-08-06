@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import St from 'gi://St';
+import GLib from 'gi://GLib';
 import UPowerGlib from 'gi://UPowerGlib';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -50,15 +51,38 @@ export default class BatteryIndicatorIcon extends Extension {
     this._theme = St.ThemeContext.get_for_stage(global.stage);
 
     const update = () => {
-      if (this._proxy.IsPresent) {
+      // 正常模式直接读内核电池状态（绕过 UPower 对"停充"约 20 秒的
+      // 延迟判定）；debug 模式沿用 mock proxy 以便观察循环变化。
+      const battery = debugMode
+        ? this._proxy.IsPresent
+          ? {
+              percentage: this._proxy.Percentage,
+              charging:
+                this._proxy.State === UPowerGlib.DeviceState.CHARGING,
+            }
+          : null
+        : this._readBatteryState();
+      if (battery) {
         this._patch(sysIndicator, powerToggle);
+
+        // Debug: 记录状态变化（用于排查"顶栏图标切换慢"）
+        const dbgState = battery.charging ? 1 : 4;
+        const dbgPct = battery.percentage;
+        if (dbgState !== this._lastState || dbgPct !== this._lastPct) {
+          log(
+            `battery-buddy: update state=${dbgState} pct=${dbgPct}` +
+              ` (now=${Date.now()})`
+          );
+          this._lastState = dbgState;
+          this._lastPct = dbgPct;
+        }
 
         // Update properties of the fox battery icons
         const height = this._theme.scaleFactor * 16; // panel.js::PANEL_ICON_SIZE === 16
         // Fixed horizontal cartoon fox icon, aspect ratio 2:1
         const width = Math.round(height * 2);
-        const charging = this._proxy.State === UPowerGlib.DeviceState.CHARGING;
-        const percentage = this._proxy.Percentage;
+        const charging = battery.charging;
+        const percentage = battery.percentage;
 
         const props = {
           height,
@@ -101,6 +125,14 @@ export default class BatteryIndicatorIcon extends Extension {
       update.bind(this)
     );
 
+    // 开机兜底：upowerd 就绪前信号时序可能对不上（proxy 在扩展连接
+    // 信号前已更新过属性），2 秒轮询一次确保图标状态尽快就位。
+    // 属性未变化时 GObject 不会发 notify，轮询开销可忽略。
+    this._pollId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
+      update();
+      return GLib.SOURCE_CONTINUE;
+    });
+
     // Connect theme
     this._themeId = this._theme.connect(
       'notify::scale-factor',
@@ -110,6 +142,27 @@ export default class BatteryIndicatorIcon extends Extension {
 
     update();
     this.setupDone = true;
+  }
+
+  // 直接读内核 sysfs，绕过 UPower 对"停充"约 20 秒的延迟判定，
+  // 保证 fox 图标与设置窗口文字同步更新。
+  _readBatteryState() {
+    try {
+      const decoder = new TextDecoder();
+      const [, cap] = GLib.file_get_contents(
+        '/sys/class/power_supply/BAT0/capacity');
+      const [, st] = GLib.file_get_contents(
+        '/sys/class/power_supply/BAT0/status');
+      const percentage = parseInt(decoder.decode(cap).trim(), 10);
+      const status = decoder.decode(st).trim();
+      return {
+        percentage,
+        charging: status === 'Charging',
+      };
+    } catch (e) {
+      log(`battery-buddy: 读取电池状态失败: ${e}`);
+      return null;
+    }
   }
 
   disable() {
@@ -134,6 +187,12 @@ export default class BatteryIndicatorIcon extends Extension {
     }
     this._proxy = null;
     this._proxyId = null;
+
+    // Stop polling
+    if (this._pollId) {
+      GLib.source_remove(this._pollId);
+      this._pollId = null;
+    }
 
     // Disconnect theme
     this._theme.disconnect(this._themeId);
