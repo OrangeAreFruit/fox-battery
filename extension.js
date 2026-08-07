@@ -4,6 +4,9 @@
 import St from 'gi://St';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Clutter from 'gi://Clutter';
+import Rsvg from 'gi://Rsvg';
 import UPowerGlib from 'gi://UPowerGlib';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -15,6 +18,83 @@ import {
 } from './modules/fox-widget.js';
 import { PowerManagerProxyMock } from './modules/mock.js';
 import { debugMode } from './modules/util.js';
+
+// ===== WiFi 图标（信号格样式，3 级信号）=====
+// 参考 preview/04-信号格.svg：3 根柱子外框始终存在（未填充的镂空），
+// 状态区别在于蓝色填充数量：weak=1格、medium=2格、strong=3格
+// 蓝色 #38BDF8 与狐狸电池图标一致，外框黑色
+const WIFI_SVGS = {
+  strong: `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1052 1024">
+      <path d="M154.566038 1024A154.566038 154.566038 0 0 1 0 869.433962V647.245283a154.566038 154.566038 0 0 1 309.132075 0v222.188679a154.566038 154.566038 0 0 1-154.566037 154.566038z m0-473.358491a96.603774 96.603774 0 0 0-96.603774 96.603774v222.188679a96.603774 96.603774 0 0 0 193.207548 0V647.245283a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#000000"/>
+      <path d="M154.566038 550.641509a96.603774 96.603774 0 0 0-96.603774 96.603774v222.188679a96.603774 96.603774 0 0 0 193.207548 0V647.245283a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#38BDF8"/>
+      <path d="M526.490566 1024a154.566038 154.566038 0 0 1-154.566038-154.566038V405.735849a154.566038 154.566038 0 0 1 309.132076 0v463.698113a154.566038 154.566038 0 0 1-154.566038 154.566038z m0-714.867925a96.603774 96.603774 0 0 0-96.603774 96.603774v463.698113a96.603774 96.603774 0 0 0 193.207548 0V405.735849a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#000000"/>
+      <path d="M526.490566 309.132075a96.603774 96.603774 0 0 0-96.603774 96.603774v463.698113a96.603774 96.603774 0 0 0 193.207548 0V405.735849a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#38BDF8"/>
+      <path d="M898.415094 1024a154.566038 154.566038 0 0 1-154.566037-154.566038V154.566038a154.566038 154.566038 0 0 1 309.132075 0v714.867924a154.566038 154.566038 0 0 1-154.566038 154.566038zM898.415094 57.962264a96.603774 96.603774 0 0 0-96.603773 96.603774v714.867924a96.603774 96.603774 0 0 0 193.207547 0V154.566038A96.603774 96.603774 0 0 0 898.415094 57.962264z" fill="#000000"/>
+      <path d="M898.415094 57.962264a96.603774 96.603774 0 0 0-96.603773 96.603774v714.867924a96.603774 96.603774 0 0 0 193.207547 0V154.566038A96.603774 96.603774 0 0 0 898.415094 57.962264z" fill="#38BDF8"/>
+    </svg>
+  `,
+  medium: `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1052 1024">
+      <path d="M154.566038 1024A154.566038 154.566038 0 0 1 0 869.433962V647.245283a154.566038 154.566038 0 0 1 309.132075 0v222.188679a154.566038 154.566038 0 0 1-154.566037 154.566038z m0-473.358491a96.603774 96.603774 0 0 0-96.603774 96.603774v222.188679a96.603774 96.603774 0 0 0 193.207548 0V647.245283a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#000000"/>
+      <path d="M154.566038 550.641509a96.603774 96.603774 0 0 0-96.603774 96.603774v222.188679a96.603774 96.603774 0 0 0 193.207548 0V647.245283a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#38BDF8"/>
+      <path d="M526.490566 1024a154.566038 154.566038 0 0 1-154.566038-154.566038V405.735849a154.566038 154.566038 0 0 1 309.132076 0v463.698113a154.566038 154.566038 0 0 1-154.566038 154.566038z m0-714.867925a96.603774 96.603774 0 0 0-96.603774 96.603774v463.698113a96.603774 96.603774 0 0 0 193.207548 0V405.735849a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#000000"/>
+      <path d="M526.490566 309.132075a96.603774 96.603774 0 0 0-96.603774 96.603774v463.698113a96.603774 96.603774 0 0 0 193.207548 0V405.735849a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#38BDF8"/>
+      <path d="M898.415094 1024a154.566038 154.566038 0 0 1-154.566037-154.566038V154.566038a154.566038 154.566038 0 0 1 309.132075 0v714.867924a154.566038 154.566038 0 0 1-154.566038 154.566038zM898.415094 57.962264a96.603774 96.603774 0 0 0-96.603773 96.603774v714.867924a96.603774 96.603774 0 0 0 193.207547 0V154.566038A96.603774 96.603774 0 0 0 898.415094 57.962264z" fill="#000000"/>
+    </svg>
+  `,
+  weak: `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1052 1024">
+      <path d="M154.566038 1024A154.566038 154.566038 0 0 1 0 869.433962V647.245283a154.566038 154.566038 0 0 1 309.132075 0v222.188679a154.566038 154.566038 0 0 1-154.566037 154.566038z m0-473.358491a96.603774 96.603774 0 0 0-96.603774 96.603774v222.188679a96.603774 96.603774 0 0 0 193.207548 0V647.245283a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#000000"/>
+      <path d="M154.566038 550.641509a96.603774 96.603774 0 0 0-96.603774 96.603774v222.188679a96.603774 96.603774 0 0 0 193.207548 0V647.245283a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#38BDF8"/>
+      <path d="M526.490566 1024a154.566038 154.566038 0 0 1-154.566038-154.566038V405.735849a154.566038 154.566038 0 0 1 309.132076 0v463.698113a154.566038 154.566038 0 0 1-154.566038 154.566038z m0-714.867925a96.603774 96.603774 0 0 0-96.603774 96.603774v463.698113a96.603774 96.603774 0 0 0 193.207548 0V405.735849a96.603774 96.603774 0 0 0-96.603774-96.603774z" fill="#000000"/>
+      <path d="M898.415094 1024a154.566038 154.566038 0 0 1-154.566037-154.566038V154.566038a154.566038 154.566038 0 0 1 309.132075 0v714.867924a154.566038 154.566038 0 0 1-154.566038 154.566038zM898.415094 57.962264a96.603774 96.603774 0 0 0-96.603773 96.603774v714.867924a96.603774 96.603774 0 0 0 193.207547 0V154.566038A96.603774 96.603774 0 0 0 898.415094 57.962264z" fill="#000000"/>
+    </svg>
+  `,
+};
+
+// 自定义 WiFi 图标组件（St.DrawingArea + Rsvg，与 FoxBatteryIcon 同路线）
+const WifiIcon = GObject.registerClass(
+  class WifiIcon extends St.DrawingArea {
+    _init(params = {}) {
+      super._init({
+        y_align: Clutter.ActorAlign.CENTER,
+        // 必须透传 width/height：St.DrawingArea 无样式类时固有尺寸为 0，
+        // 若丢掉构造参数，图标会被分配 0×0 区域而完全不可见。
+        ...params,
+      });
+      this._level = 'weak';
+      this.connect('style-changed', () => this.queue_repaint());
+    }
+
+    set_level(level) {
+      if (this._level !== level) {
+        this._level = level;
+        this.queue_repaint();
+      }
+    }
+
+    vfunc_repaint() {
+      const [w, h] = this.get_surface_size();
+      if (w <= 0 || h <= 0)
+        return;
+      const cr = this.get_context();
+      try {
+        // 将 SVG 固有尺寸动态匹配到 surface，避免 HiDPI/缩放下溢出裁切
+        const svg = (WIFI_SVGS[this._level] ?? WIFI_SVGS.weak).replace(
+          'width="24" height="24"',
+          `width="${w}" height="${h}"`
+        );
+        const handle = Rsvg.Handle.new_from_data(new TextEncoder().encode(svg));
+        handle.render_cairo(cr);
+      } catch (e) {
+        // 渲染失败静默，不影响其它功能
+      } finally {
+        cr.$dispose();
+      }
+    }
+  }
+);
 
 export default class BatteryIndicatorIcon extends Extension {
   setupDone = false;
@@ -35,6 +115,122 @@ export default class BatteryIndicatorIcon extends Extension {
           injection.previous.call(qs, ...args);
         }
       );
+    }
+
+    // WiFi 图标替换（顶栏），开关在面板设置里
+    this._settings = this.getSettings();
+    if (this._settings.get_boolean('replace-wifi-icon')) {
+      this._wifiRetries = 0;
+      this._initWifiIcon(qs);
+    }
+  }
+
+  // WiFi 顶栏图标替换：qs._network 是异步初始化的（_setupIndicators），
+  // 因此轮询重试直到其就绪，避免 GNOME 50 中启用时序问题。
+  _initWifiIcon(qs) {
+    const network = qs._network;
+    if (!network || !network._primaryIndicator) {
+      this._wifiRetries += 1;
+      if (this._wifiRetries > 15) {
+        log('battery-buddy: WiFi icon: qs._network 未就绪，放弃替换');
+        return;
+      }
+      const delay = this._wifiRetries <= 2 ? 300 : this._wifiRetries <= 6 ? 600 : 1000;
+      this._wifiRetryId = GLib.timeout_add(
+        GLib.PRIORITY_DEFAULT,
+        delay,
+        () => {
+          this._wifiRetryId = null;
+          this._initWifiIcon(qs);
+          return GLib.SOURCE_REMOVE;
+        }
+      );
+      return;
+    }
+    this._patchWifiIcon(network);
+  }
+
+  // 保守替换：不 replace_child（避免破坏 icon-name binding），
+  // 而是隐藏原图标 + 追加自定义图标 + 监听 icon-name 驱动等级。
+  // 注意：必须先 add_child 再隐藏原图标——官方 _addIndicator() 里每个
+  // icon 的 notify::visible 都会触发 _syncIndicatorsVisible()，若先隐藏
+  // 原图标，父容器会判定"没有可见 child"而把整个 network 指示器隐藏。
+  _patchWifiIcon(network) {
+    const indicator = network._primaryIndicator;
+    const parent = indicator?.get_parent();
+    if (this._wifiIcon || !indicator || !parent) {
+      return;
+    }
+    const size = this._theme ? this._theme.scaleFactor * 16 : 16;
+    this._wifiIcon = new WifiIcon({
+      width: size,
+      height: size,
+    });
+    this._wifiIndicator = indicator;
+    // 先加入父容器：确保 _syncIndicatorsVisible() 始终有可见 child
+    parent.add_child(this._wifiIcon);
+    // 兜底：若初始原图标不可见导致父容器被隐藏，这里恢复（wifiIcon 是可见 child）
+    if (!parent.visible)
+      parent.visible = true;
+    // 原图标 visible 会被 _updateIcon() 动态控制，这里强制保持隐藏；
+    // 替换模式下 wifiIcon 保持可见（无信号时显示黄色弱图标）
+    this._wifiVisibleId = indicator.connect('notify::visible', () => {
+      indicator.visible = false;
+    });
+    indicator.visible = false;
+
+    const syncLevel = () => {
+      this._wifiIcon.set_level(this._wifiIconNameToLevel(indicator.icon_name));
+    };
+    this._wifiIconNameId = indicator.connect('notify::icon-name', syncLevel);
+    syncLevel();
+
+    // 跟随顶栏缩放比例
+    if (this._theme) {
+      this._wifiThemeId = this._theme.connect('notify::scale-factor', () => {
+        const s = this._theme.scaleFactor * 16;
+        this._wifiIcon.set({ width: s, height: s });
+      });
+    }
+    log('battery-buddy: WiFi 顶栏图标替换已启用');
+  }
+
+  // 官方信号强度映射（panel icon-name 后缀，见 network.js::signalToIcon）：
+  // excellent/good → strong，ok → medium，weak/none → weak
+  _wifiIconNameToLevel(iconName) {
+    if (!iconName)
+      return 'weak';
+    if (iconName.includes('excellent') || iconName.includes('good'))
+      return 'strong';
+    if (iconName.includes('ok'))
+      return 'medium';
+    return 'weak';
+  }
+
+  _unpatchWifiIcon() {
+    if (this._wifiRetryId) {
+      GLib.source_remove(this._wifiRetryId);
+      this._wifiRetryId = null;
+    }
+    if (this._wifiIconNameId && this._wifiIndicator) {
+      this._wifiIndicator.disconnect(this._wifiIconNameId);
+      this._wifiIconNameId = null;
+    }
+    if (this._wifiVisibleId && this._wifiIndicator) {
+      this._wifiIndicator.disconnect(this._wifiVisibleId);
+      this._wifiVisibleId = null;
+    }
+    if (this._wifiThemeId && this._theme) {
+      this._theme.disconnect(this._wifiThemeId);
+      this._wifiThemeId = null;
+    }
+    if (this._wifiIcon) {
+      this._wifiIcon.destroy();
+      this._wifiIcon = null;
+    }
+    if (this._wifiIndicator) {
+      this._wifiIndicator.visible = true;
+      this._wifiIndicator = null;
     }
   }
 
@@ -204,6 +400,12 @@ export default class BatteryIndicatorIcon extends Extension {
   }
 
   disable() {
+    // WiFi 顶栏图标清理（不依赖 setupDone，enable 后随时可能已 patch）
+    this._unpatchWifiIcon();
+    if (this._settings) {
+      this._settings = null;
+    }
+
     // Unlock-dialog session-mode required:
     // since the battery indicator is also visible in the unlock-dialog.
     // The user most likely expects the custom icon to appear in the unlock-dialog.
