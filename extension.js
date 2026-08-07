@@ -76,65 +76,39 @@ const BLUETOOTH_SVG = `
 // 足够覆盖最慢的开机场景，超时即放弃避免空转。
 const MAX_ICON_RETRIES = 60;
 
-// 自定义音量顶栏图标（水容量样式，4 档状态）。
+// 自定义音量顶栏图标（喇叭 + 声纹样式，4 档状态）。
 // 官方 icon_name 为 audio-volume-{muted,low,medium,high,overamplified}-symbolic，
-// 映射到 muted / low / medium / high 四档：muted 无水，其余按水位线高度区分。
-// 外框保持正方形圆角矩形（等比放大 1.37 至接近最大，不拉伸不变形），与预览 svg 一致。
+// 映射到 muted / low / medium / high 四档：左侧喇叭纯白封闭，右侧 3 道声纹
+// 固定显示，纯白 #FFFFFF 表示当前有效档位，接近黑的暗灰 #555555 表示未达到
+// 的档位（区分度明显）。muted 无任何声纹。
 const VOLUME_SVGS = {
   muted: `
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1024 1024">
-      <g transform="translate(512 512) scale(1.37) translate(-512 -512)">
-        <path d="M489.6 265.6a22.4 22.4 0 1 1 44.8 0V758.4a22.4 22.4 0 1 1-44.8 0V265.6zM595.2 355.2a22.4 22.4 0 1 1 44.8 0V668.8a22.4 22.4 0 1 1-44.8 0V355.2zM384 355.2a22.4 22.4 0 1 1 44.8 0V668.8a22.4 22.4 0 1 1-44.8 0V355.2zM278.4 444.8a22.4 22.4 0 1 1 44.8 0V579.2a22.4 22.4 0 1 1-44.8 0V444.8zM700.8 444.8a22.4 22.4 0 1 1 44.8 0V579.2a22.4 22.4 0 1 1-44.8 0V444.8z" fill="#000000"/>
-        <path fill-rule="evenodd" d="M661.9 856H362.1c-116.1 0-194-81.5-194-202.7V370.8c0-121.2 78-202.7 194-202.7H662c116.1 0 194 81.5 194 202.7v282.5C856 774.5 778 856 661.9 856zM362.1 216c-88.7 0-146 60.7-146 154.7v282.5c0 94 57.3 154.7 146 154.7H662c88.7 0 146.1-60.7 146.1-154.7V370.7c0-94-57.3-154.7-146-154.7h-300z" fill="#000000"/>
-      </g>
+      <path d="M283.221333 341.333333H256a85.333333 85.333333 0 0 0-85.333333 85.333334v170.666666a85.333333 85.333333 0 0 0 58.325333 80.981334v0.042666a42.666667 42.666667 0 0 1-26.965333 80.896l-1.194667-0.384A170.752 170.752 0 0 1 85.333333 597.333333v-170.666666a170.666667 170.666667 0 0 1 170.666667-170.666667h27.221333a42.666667 42.666667 0 0 0 27.306667-9.898667l92.202667-76.8C513.92 76.586667 682.666667 155.605333 682.666667 300.373333v423.253334c0 144.682667-168.746667 223.744-279.893334 131.114666L352.426667 812.8a42.624 42.624 0 0 1 25.557333-76.842667c11.093333 0 21.205333 4.266667 28.8 11.178667l0.042667-0.085333 50.517333 42.069333c55.552 46.336 139.946667 6.826667 139.946667-65.536V300.373333c0-72.362667-84.394667-111.872-139.946667-65.536l-92.245333 76.8A128 128 0 0 1 283.264 341.333333z" fill="#FFFFFF"/>
     </svg>
   `,
   low: `
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1024 1024">
-      <defs>
-        <clipPath id="vol-inner">
-          <path d="M362.1 216c-88.7 0-146 60.7-146 154.7v282.5c0 94 57.3 154.7 146 154.7H662c88.7 0 146.1-60.7 146.1-154.7V370.7c0-94-57.3-154.7-146-154.7h-300z"/>
-        </clipPath>
-      </defs>
-      <g transform="translate(512 512) scale(1.37) translate(-512 -512)">
-        <g clip-path="url(#vol-inner)">
-          <path d="M170.67 588.67 q53 -55 118 0 q41 40 94 0 q59 -45 129 0 q35 30 82 0 q47 -50 112 0 q41 35 88 0 q35 -25 60 0 L853.67 890 L170.67 890 z" fill="#38BDF8"/>
-        </g>
-        <path d="M489.6 265.6a22.4 22.4 0 1 1 44.8 0V758.4a22.4 22.4 0 1 1-44.8 0V265.6zM595.2 355.2a22.4 22.4 0 1 1 44.8 0V668.8a22.4 22.4 0 1 1-44.8 0V355.2zM384 355.2a22.4 22.4 0 1 1 44.8 0V668.8a22.4 22.4 0 1 1-44.8 0V355.2zM278.4 444.8a22.4 22.4 0 1 1 44.8 0V579.2a22.4 22.4 0 1 1-44.8 0V444.8zM700.8 444.8a22.4 22.4 0 1 1 44.8 0V579.2a22.4 22.4 0 1 1-44.8 0V444.8z" fill="#000000"/>
-        <path fill-rule="evenodd" d="M661.9 856H362.1c-116.1 0-194-81.5-194-202.7V370.8c0-121.2 78-202.7 194-202.7H662c116.1 0 194 81.5 194 202.7v282.5C856 774.5 778 856 661.9 856zM362.1 216c-88.7 0-146 60.7-146 154.7v282.5c0 94 57.3 154.7 146 154.7H662c88.7 0 146.1-60.7 146.1-154.7V370.7c0-94-57.3-154.7-146-154.7h-300z" fill="#000000"/>
-      </g>
+      <path d="M283.221333 341.333333H256a85.333333 85.333333 0 0 0-85.333333 85.333334v170.666666a85.333333 85.333333 0 0 0 58.325333 80.981334v0.042666a42.666667 42.666667 0 0 1-26.965333 80.896l-1.194667-0.384A170.752 170.752 0 0 1 85.333333 597.333333v-170.666666a170.666667 170.666667 0 0 1 170.666667-170.666667h27.221333a42.666667 42.666667 0 0 0 27.306667-9.898667l92.202667-76.8C513.92 76.586667 682.666667 155.605333 682.666667 300.373333v423.253334c0 144.682667-168.746667 223.744-279.893334 131.114666L352.426667 812.8a42.624 42.624 0 0 1 25.557333-76.842667c11.093333 0 21.205333 4.266667 28.8 11.178667l0.042667-0.085333 50.517333 42.069333c55.552 46.336 139.946667 6.826667 139.946667-65.536V300.373333c0-72.362667-84.394667-111.872-139.946667-65.536l-92.245333 76.8A128 128 0 0 1 283.264 341.333333z" fill="#FFFFFF"/>
+      <path d="M728 445 A115 115 0 0 1 728 645" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
+      <path d="M780 355 A219 219 0 0 1 780 735" fill="none" stroke="#555555" stroke-width="36" stroke-linecap="round"/>
+      <path d="M832 265 A323 323 0 0 1 832 825" fill="none" stroke="#555555" stroke-width="36" stroke-linecap="round"/>
     </svg>
   `,
   medium: `
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1024 1024">
-      <defs>
-        <clipPath id="vol-inner">
-          <path d="M362.1 216c-88.7 0-146 60.7-146 154.7v282.5c0 94 57.3 154.7 146 154.7H662c88.7 0 146.1-60.7 146.1-154.7V370.7c0-94-57.3-154.7-146-154.7h-300z"/>
-        </clipPath>
-      </defs>
-      <g transform="translate(512 512) scale(1.37) translate(-512 -512)">
-        <g clip-path="url(#vol-inner)">
-          <path d="M170.67 369.33 q53 -55 118 0 q41 40 94 0 q59 -45 129 0 q35 30 82 0 q47 -50 112 0 q41 35 88 0 q35 -25 60 0 L853.67 890 L170.67 890 z" fill="#38BDF8"/>
-        </g>
-        <path d="M489.6 265.6a22.4 22.4 0 1 1 44.8 0V758.4a22.4 22.4 0 1 1-44.8 0V265.6zM595.2 355.2a22.4 22.4 0 1 1 44.8 0V668.8a22.4 22.4 0 1 1-44.8 0V355.2zM384 355.2a22.4 22.4 0 1 1 44.8 0V668.8a22.4 22.4 0 1 1-44.8 0V355.2zM278.4 444.8a22.4 22.4 0 1 1 44.8 0V579.2a22.4 22.4 0 1 1-44.8 0V444.8zM700.8 444.8a22.4 22.4 0 1 1 44.8 0V579.2a22.4 22.4 0 1 1-44.8 0V444.8z" fill="#000000"/>
-        <path fill-rule="evenodd" d="M661.9 856H362.1c-116.1 0-194-81.5-194-202.7V370.8c0-121.2 78-202.7 194-202.7H662c116.1 0 194 81.5 194 202.7v282.5C856 774.5 778 856 661.9 856zM362.1 216c-88.7 0-146 60.7-146 154.7v282.5c0 94 57.3 154.7 146 154.7H662c88.7 0 146.1-60.7 146.1-154.7V370.7c0-94-57.3-154.7-146-154.7h-300z" fill="#000000"/>
-      </g>
+      <path d="M283.221333 341.333333H256a85.333333 85.333333 0 0 0-85.333333 85.333334v170.666666a85.333333 85.333333 0 0 0 58.325333 80.981334v0.042666a42.666667 42.666667 0 0 1-26.965333 80.896l-1.194667-0.384A170.752 170.752 0 0 1 85.333333 597.333333v-170.666666a170.666667 170.666667 0 0 1 170.666667-170.666667h27.221333a42.666667 42.666667 0 0 0 27.306667-9.898667l92.202667-76.8C513.92 76.586667 682.666667 155.605333 682.666667 300.373333v423.253334c0 144.682667-168.746667 223.744-279.893334 131.114666L352.426667 812.8a42.624 42.624 0 0 1 25.557333-76.842667c11.093333 0 21.205333 4.266667 28.8 11.178667l0.042667-0.085333 50.517333 42.069333c55.552 46.336 139.946667 6.826667 139.946667-65.536V300.373333c0-72.362667-84.394667-111.872-139.946667-65.536l-92.245333 76.8A128 128 0 0 1 283.264 341.333333z" fill="#FFFFFF"/>
+      <path d="M728 445 A115 115 0 0 1 728 645" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
+      <path d="M780 355 A219 219 0 0 1 780 735" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
+      <path d="M832 265 A323 323 0 0 1 832 825" fill="none" stroke="#555555" stroke-width="36" stroke-linecap="round"/>
     </svg>
   `,
   high: `
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1024 1024">
-      <defs>
-        <clipPath id="vol-inner">
-          <path d="M362.1 216c-88.7 0-146 60.7-146 154.7v282.5c0 94 57.3 154.7 146 154.7H662c88.7 0 146.1-60.7 146.1-154.7V370.7c0-94-57.3-154.7-146-154.7h-300z"/>
-        </clipPath>
-      </defs>
-      <g transform="translate(512 512) scale(1.37) translate(-512 -512)">
-        <g clip-path="url(#vol-inner)">
-          <path d="M170.67 150 q53 -55 118 0 q41 40 94 0 q59 -45 129 0 q35 30 82 0 q47 -50 112 0 q41 35 88 0 q35 -25 60 0 L853.67 890 L170.67 890 z" fill="#38BDF8"/>
-        </g>
-        <path d="M489.6 265.6a22.4 22.4 0 1 1 44.8 0V758.4a22.4 22.4 0 1 1-44.8 0V265.6zM595.2 355.2a22.4 22.4 0 1 1 44.8 0V668.8a22.4 22.4 0 1 1-44.8 0V355.2zM384 355.2a22.4 22.4 0 1 1 44.8 0V668.8a22.4 22.4 0 1 1-44.8 0V355.2zM278.4 444.8a22.4 22.4 0 1 1 44.8 0V579.2a22.4 22.4 0 1 1-44.8 0V444.8zM700.8 444.8a22.4 22.4 0 1 1 44.8 0V579.2a22.4 22.4 0 1 1-44.8 0V444.8z" fill="#000000"/>
-        <path fill-rule="evenodd" d="M661.9 856H362.1c-116.1 0-194-81.5-194-202.7V370.8c0-121.2 78-202.7 194-202.7H662c116.1 0 194 81.5 194 202.7v282.5C856 774.5 778 856 661.9 856zM362.1 216c-88.7 0-146 60.7-146 154.7v282.5c0 94 57.3 154.7 146 154.7H662c88.7 0 146.1-60.7 146.1-154.7V370.7c0-94-57.3-154.7-146-154.7h-300z" fill="#000000"/>
-      </g>
+      <path d="M283.221333 341.333333H256a85.333333 85.333333 0 0 0-85.333333 85.333334v170.666666a85.333333 85.333333 0 0 0 58.325333 80.981334v0.042666a42.666667 42.666667 0 0 1-26.965333 80.896l-1.194667-0.384A170.752 170.752 0 0 1 85.333333 597.333333v-170.666666a170.666667 170.666667 0 0 1 170.666667-170.666667h27.221333a42.666667 42.666667 0 0 0 27.306667-9.898667l92.202667-76.8C513.92 76.586667 682.666667 155.605333 682.666667 300.373333v423.253334c0 144.682667-168.746667 223.744-279.893334 131.114666L352.426667 812.8a42.624 42.624 0 0 1 25.557333-76.842667c11.093333 0 21.205333 4.266667 28.8 11.178667l0.042667-0.085333 50.517333 42.069333c55.552 46.336 139.946667 6.826667 139.946667-65.536V300.373333c0-72.362667-84.394667-111.872-139.946667-65.536l-92.245333 76.8A128 128 0 0 1 283.264 341.333333z" fill="#FFFFFF"/>
+      <path d="M728 445 A115 115 0 0 1 728 645" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
+      <path d="M780 355 A219 219 0 0 1 780 735" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
+      <path d="M832 265 A323 323 0 0 1 832 825" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
     </svg>
   `,
 };
@@ -474,11 +448,13 @@ export default class BatteryIndicatorIcon extends Extension {
     );
   }
 
-  // 保守替换：隐藏原图标 + 追加自定义图标 + 同步显隐。
-  // 官方 _sync() 按"是否有已连接设备"设置 _indicator.visible，父容器
-  // （SystemIndicator，初始 visible=false）的显隐由官方 _syncIndicatorsVisible()
-  // 驱动；这里不依赖其调用时序，直接接管父容器显隐，并定时兜底重同步，
-  // 避免"patch 成功但图标不显示"的时序问题。
+  // 保守替换：隐藏原图标 + 追加自定义图标 + 以蓝牙开启状态驱动显隐。
+  // 官方 _sync()（status/bluetooth.js）只在"有已连接设备"时才显示顶栏
+  // 图标，且 _syncIndicatorsVisible() 会按 children 显隐联动父容器——
+  // 这导致"蓝牙开着但没连设备"时图标被反复强制隐藏（出现即消失）。
+  // 这里不再转发官方 indicator.visible、也不再调用官方 _sync()，
+  // 直接以 BtClient.active（default_adapter_powered，蓝牙适配器已开启）
+  // 为准：蓝牙开启即稳定显示，关闭即隐藏，与 WiFi 图标行为一致。
   _patchBluetoothIcon(bluetooth) {
     const indicator = bluetooth._indicator;
     const parent = indicator?.get_parent();
@@ -498,31 +474,29 @@ export default class BatteryIndicatorIcon extends Extension {
     // 先加入父容器：确保 _syncIndicatorsVisible() 始终有可见 child
     parent.add_child(this._btIcon);
 
-    // 把官方 visible 语义转发给自定义图标，原图标始终保持隐藏；
-    // 同时直接接管父容器显隐，不依赖官方回调的执行时序。
-    // 注意：设置 indicator.visible = false 会同步再次触发 notify::visible，
-    // 若不加守卫，重入的 handler 会重读（已被强置 false 的）indicator.visible，
-    // 把刚显示的 _btIcon 误设为隐藏（图标永远不显示）。
-    let syncing = false;
+    // 以蓝牙适配器状态驱动显隐：原图标始终保持隐藏，父容器显隐由
+    // _btIcon 决定。设置 indicator.visible = false 会触发官方
+    // _syncIndicatorsVisible() 把父容器改隐，这里通过 indicator 的
+    // notify::visible 监听在官方动作之后立即纠正回正确状态。
+    // （同步设相同值 GObject 不会重复触发 notify，无死循环风险）
     const syncVisible = () => {
-      if (syncing)
+      if (!this._btIcon || !this._btIndicator || !this._btParent)
         return;
-      syncing = true;
-      this._btIcon.visible = indicator.visible;
-      indicator.visible = false;
-      parent.visible = this._btIcon.visible;
-      syncing = false;
+      const show = this._bt?._client?.active ?? false;
+      this._btIcon.visible = show;
+      this._btIndicator.visible = false;
+      this._btParent.visible = show;
     };
+    // 蓝牙开关切换（适配器 Powered 变化）
+    this._btActiveId = this._bt?._client?.connect('notify::active', syncVisible);
+    // 官方 _sync()（devices-changed 触发）按设备数改写 indicator.visible，
+    // 监听后立即把父容器拉回"蓝牙开启即显示"，避免图标被官方隐藏
     this._btVisibleId = indicator.connect('notify::visible', syncVisible);
     syncVisible();
 
-    // 兜底：开机时设备连接事件（devices-changed）可能早在 patch 之前就已
-    // 派发完毕，此后不再有新事件，我们的 notify 转发链路从未触发，图标
-    // 永远隐藏（表现为"必须点 2 次开关才恢复"——unpatch 时 _sync() 会
-    // 按当前设备状态重写 visible）。因此每 3 秒强制调用官方 _sync()，
-    // 它按当前 daemon 设备状态重新设置 indicator.visible，随后我们已
-    // 连接的 notify::visible handler 自动完成转发（异步、开销可忽略），
-    // 直到图标被撤销（_unpatchBluetoothIcon 会 source_remove）。
+    // 兜底：notify::active 依赖 BtClient 初始化时序，开机早期可能漏事件；
+    // 每 3 秒重读一次适配器状态强制收敛（不调用官方 _sync()，只读属性，
+    // 异步开销可忽略），直到图标被撤销。
     this._btSyncId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 3000, () => {
       if (!this._btIcon || !this._btIndicator || !this._btParent ||
           !this._bt) {
@@ -530,11 +504,7 @@ export default class BatteryIndicatorIcon extends Extension {
         return GLib.SOURCE_REMOVE;
       }
       const before = this._btIcon.visible;
-      try {
-        this._bt._sync();
-      } catch (e) {
-        log(`battery-buddy: 蓝牙 _sync() 异常: ${e}`);
-      }
+      syncVisible();
       if (before !== this._btIcon.visible)
         log(`battery-buddy: 蓝牙兜底同步: icon.visible ${before} -> ${this._btIcon.visible}`);
       return GLib.SOURCE_CONTINUE;
@@ -559,6 +529,10 @@ export default class BatteryIndicatorIcon extends Extension {
     if (this._btSyncId) {
       GLib.source_remove(this._btSyncId);
       this._btSyncId = null;
+    }
+    if (this._btActiveId && this._bt?._client) {
+      this._bt._client.disconnect(this._btActiveId);
+      this._btActiveId = null;
     }
     if (this._btVisibleId && this._btIndicator) {
       this._btIndicator.disconnect(this._btVisibleId);
