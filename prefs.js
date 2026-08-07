@@ -60,6 +60,10 @@ const I18N = {
         wifiGroupDesc: '替换系统 WiFi 图标（切换即时生效）',
         wifiReplaceTitle: '启用自定义 WiFi 图标',
         wifiReplaceSubtitle: '使用狐狸风格的彩色 WiFi 图标',
+        bluetoothGroupTitle: '蓝牙图标',
+        bluetoothGroupDesc: '替换系统蓝牙图标（切换即时生效）',
+        bluetoothReplaceTitle: '启用自定义蓝牙图标',
+        bluetoothReplaceSubtitle: '使用狐狸风格的彩色蓝牙图标',
     },
     en: {
         pageTitle: 'General',
@@ -86,6 +90,10 @@ const I18N = {
         wifiGroupDesc: 'Replace the system WiFi icon (takes effect immediately)',
         wifiReplaceTitle: 'Enable custom WiFi icon',
         wifiReplaceSubtitle: 'Use a colorful fox-style WiFi icon',
+        bluetoothGroupTitle: 'Bluetooth Icon',
+        bluetoothGroupDesc: 'Replace the system Bluetooth icon (takes effect immediately)',
+        bluetoothReplaceTitle: 'Enable custom Bluetooth icon',
+        bluetoothReplaceSubtitle: 'Use a colorful fox-style Bluetooth icon',
     },
 };
 
@@ -217,8 +225,27 @@ export default class BatteryBuddyPreferences extends ExtensionPreferences {
 
         wifiGroup.add(wifiSwitch);
 
+        // 蓝牙图标替换开关
+        const btGroup = new Adw.PreferencesGroup({
+            title: t('bluetoothGroupTitle'),
+            description: t('bluetoothGroupDesc'),
+        });
+
+        const btSwitch = new Adw.SwitchRow({
+            title: t('bluetoothReplaceTitle'),
+            subtitle: t('bluetoothReplaceSubtitle'),
+            active: this._settings.get_boolean('replace-bluetooth-icon'),
+        });
+
+        btSwitch.connect('notify::active', () => {
+            this._settings.set_boolean('replace-bluetooth-icon', btSwitch.active);
+        });
+
+        btGroup.add(btSwitch);
+
         page.add(group);
         page.add(wifiGroup);
+        page.add(btGroup);
         page.add(langGroup);
         this._window.add(page);
         this._page = page;

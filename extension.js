@@ -53,6 +53,29 @@ const WIFI_SVGS = {
   `,
 };
 
+// 自定义蓝牙顶栏图标（静态样式：黑色蓝牙符号 + 蓝色水位）。
+// 蓝牙 icon_name 固定不变，官方只按"是否有已连接设备"切换 visible，
+// 因此无需按状态分档，替换时同步显隐即可。
+const BLUETOOTH_SVG = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 1024 1024">
+    <defs>
+      <clipPath id="bt-inner">
+        <path d="M746.666667 149.333333a106.666667 106.666667 0 0 1 106.666666 106.666667v512a106.666667 106.666667 0 0 1-106.666666 106.666667H277.333333a106.666667 106.666667 0 0 1-106.666666-106.666667V256a106.666667 106.666667 0 0 1 106.666666-106.666667h469.333334z"/>
+      </clipPath>
+    </defs>
+    <g transform="translate(0 -150.58) scale(1 1.2941)">
+      <g clip-path="url(#bt-inner)">
+        <path d="M170.67 350 q53 -55 118 0 q41 40 94 0 q59 -45 129 0 q35 30 82 0 q47 -50 112 0 q41 35 88 0 q35 -25 60 0 L853.67 890 L170.67 890 z" fill="#38BDF8" fill-opacity="0.55"/>
+      </g>
+      <path fill-rule="evenodd" d="M746.666667 149.333333a106.666667 106.666667 0 0 1 106.666666 106.666667v512a106.666667 106.666667 0 0 1-106.666666 106.666667H277.333333a106.666667 106.666667 0 0 1-106.666666-106.666667V256a106.666667 106.666667 0 0 1 106.666666-106.666667h469.333334m0-64H277.333333a170.666667 170.666667 0 0 0-170.666666 170.666667v512a170.666667 170.666667 0 0 0 170.666666 170.666667h469.333334a170.666667 170.666667 0 0 0 170.666666-170.666667V256a170.666667 170.666667 0 0 0-170.666666-170.666667z" fill="#000000"/>
+      <path d="M528 314.133333L628.906667 384 528 453.866667V314.133333m0-64a64 64 0 0 0-64 64V576l201.333333-139.36a64 64 0 0 0 0-105.28L564.426667 261.333333A62.986667 62.986667 0 0 0 528 250.026667z" fill="#000000"/>
+      <path d="M528 570.133333l100.906667 69.866667L528 709.866667v-139.733334M464 448v261.866667a64 64 0 0 0 64 64 62.986667 62.986667 0 0 0 36.213333-11.52l100.906667-69.813334a64 64 0 0 0 0-105.28L464 448z" fill="#000000"/>
+      <path d="M361.013333 382.773333a32 32 0 0 0-18.4 58.24L464 525.813333a32 32 0 1 0 36.693333-52.426666l-121.333333-84.8a31.68 31.68 0 0 0-18.346667-5.813334z" fill="#000000"/>
+      <path d="M483.306667 491.786667a32 32 0 0 0-18.346667 5.76l-122.346667 85.706666a32 32 0 0 0-7.84 44.533334 32 32 0 0 0 44.586667 7.893333l122.293333-85.706667a32 32 0 0 0-18.346666-58.186666z" fill="#000000"/>
+    </g>
+  </svg>
+`;
+
 // 自定义 WiFi 图标组件（St.DrawingArea + Rsvg，与 FoxBatteryIcon 同路线）
 const WifiIcon = GObject.registerClass(
   class WifiIcon extends St.DrawingArea {
@@ -82,6 +105,38 @@ const WifiIcon = GObject.registerClass(
       try {
         // 将 SVG 固有尺寸动态匹配到 surface，避免 HiDPI/缩放下溢出裁切
         const svg = (WIFI_SVGS[this._level] ?? WIFI_SVGS.weak).replace(
+          'width="24" height="24"',
+          `width="${w}" height="${h}"`
+        );
+        const handle = Rsvg.Handle.new_from_data(new TextEncoder().encode(svg));
+        handle.render_cairo(cr);
+      } catch (e) {
+        // 渲染失败静默，不影响其它功能
+      } finally {
+        cr.$dispose();
+      }
+    }
+  }
+);
+
+// 自定义蓝牙顶栏图标组件（静态 SVG，无状态分档）
+const BluetoothIcon = GObject.registerClass(
+  class BluetoothIcon extends St.DrawingArea {
+    _init(params = {}) {
+      super._init({
+        y_align: Clutter.ActorAlign.CENTER,
+        ...params,
+      });
+      this.connect('style-changed', () => this.queue_repaint());
+    }
+
+    vfunc_repaint() {
+      const [w, h] = this.get_surface_size();
+      if (w <= 0 || h <= 0)
+        return;
+      const cr = this.get_context();
+      try {
+        const svg = BLUETOOTH_SVG.replace(
           'width="24" height="24"',
           `width="${w}" height="${h}"`
         );
@@ -135,6 +190,27 @@ export default class BatteryIndicatorIcon extends Extension {
       this._wifiRetries = 0;
       this._initWifiIcon(qs);
     }
+
+    // 蓝牙图标替换（顶栏），同样实时监听设置变化
+    this._btSettingsId = this._settings.connect(
+      'changed::replace-bluetooth-icon',
+      () => {
+        // disable() 置空 _settings 后，已排队的 changed 信号仍可能触发，需防御
+        if (!this._settings)
+          return;
+        if (this._settings.get_boolean('replace-bluetooth-icon')) {
+          this._btRetries = 0;
+          this._initBluetoothIcon(qs);
+        } else {
+          this._unpatchBluetoothIcon();
+        }
+      }
+    );
+    if (this._settings.get_boolean('replace-bluetooth-icon')) {
+      this._btRetries = 0;
+      this._initBluetoothIcon(qs);
+    }
+
   }
 
   // WiFi 顶栏图标替换：qs._network 是异步初始化的（_setupIndicators），
@@ -244,6 +320,101 @@ export default class BatteryIndicatorIcon extends Extension {
       this._wifiIndicator.visible = true;
       this._wifiIndicator = null;
     }
+  }
+
+  // 蓝牙顶栏图标替换：qs._bluetooth 同样由 _setupIndicators() 异步创建，
+  // 沿用 WiFi 的轮询重试模式。蓝牙 icon_name 固定，只需同步显隐。
+  _initBluetoothIcon(qs) {
+    const bluetooth = qs._bluetooth;
+    if (!bluetooth || !bluetooth._indicator) {
+      this._btRetries += 1;
+      if (this._btRetries > 15) {
+        log('battery-buddy: Bluetooth icon: qs._bluetooth 未就绪，放弃替换');
+        return;
+      }
+      const delay = this._btRetries <= 2 ? 300 : this._btRetries <= 6 ? 600 : 1000;
+      this._btRetryId = GLib.timeout_add(
+        GLib.PRIORITY_DEFAULT,
+        delay,
+        () => {
+          this._btRetryId = null;
+          this._initBluetoothIcon(qs);
+          return GLib.SOURCE_REMOVE;
+        }
+      );
+      return;
+    }
+    this._patchBluetoothIcon(bluetooth);
+  }
+
+  // 保守替换：隐藏原图标 + 追加自定义图标 + 同步显隐。
+  // 官方 _sync() 按"是否有已连接设备"设置 _indicator.visible，父容器
+  // （_syncIndicatorsVisible）以任一可见 child 决定显隐，因此必须先把
+  // 自定义图标 add_child 进父容器，再接管原图标的 visible。
+  _patchBluetoothIcon(bluetooth) {
+    const indicator = bluetooth._indicator;
+    const parent = indicator?.get_parent();
+    if (this._btIcon || !indicator || !parent) {
+      return;
+    }
+    const size = this._theme ? this._theme.scaleFactor * 16 : 16;
+    this._btIcon = new BluetoothIcon({
+      width: size,
+      height: size,
+    });
+    this._bt = bluetooth;
+    this._btIndicator = indicator;
+    // 先加入父容器：确保 _syncIndicatorsVisible() 始终有可见 child
+    parent.add_child(this._btIcon);
+
+    // 把官方 visible 语义转发给自定义图标，原图标始终保持隐藏。
+    // 注意：设置 indicator.visible = false 会同步再次触发 notify::visible，
+    // 若不做守卫会递归执行导致自定义图标被误设为隐藏（图标永远不显示）。
+    let syncing = false;
+    const syncVisible = () => {
+      if (syncing)
+        return;
+      syncing = true;
+      this._btIcon.visible = indicator.visible;
+      indicator.visible = false;
+      syncing = false;
+    };
+    this._btVisibleId = indicator.connect('notify::visible', syncVisible);
+    syncVisible();
+
+    // 跟随顶栏缩放比例
+    if (this._theme) {
+      this._btThemeId = this._theme.connect('notify::scale-factor', () => {
+        const s = this._theme.scaleFactor * 16;
+        this._btIcon.set({ width: s, height: s });
+      });
+    }
+    log('battery-buddy: 蓝牙顶栏图标替换已启用');
+  }
+
+  _unpatchBluetoothIcon() {
+    if (this._btRetryId) {
+      GLib.source_remove(this._btRetryId);
+      this._btRetryId = null;
+    }
+    if (this._btVisibleId && this._btIndicator) {
+      this._btIndicator.disconnect(this._btVisibleId);
+      this._btVisibleId = null;
+    }
+    if (this._btThemeId && this._theme) {
+      this._theme.disconnect(this._btThemeId);
+      this._btThemeId = null;
+    }
+    if (this._btIcon) {
+      this._btIcon.destroy();
+      this._btIcon = null;
+    }
+    if (this._bt && this._btIndicator) {
+      // 恢复官方 _sync() 对原图标显隐的接管
+      this._bt._sync();
+    }
+    this._btIndicator = null;
+    this._bt = null;
   }
 
   _setup(qs) {
@@ -414,10 +585,16 @@ export default class BatteryIndicatorIcon extends Extension {
   disable() {
     // WiFi 顶栏图标清理（不依赖 setupDone，enable 后随时可能已 patch）
     this._unpatchWifiIcon();
+    // 蓝牙顶栏图标清理
+    this._unpatchBluetoothIcon();
     if (this._settings) {
       if (this._wifiSettingsId) {
         this._settings.disconnect(this._wifiSettingsId);
         this._wifiSettingsId = null;
+      }
+      if (this._btSettingsId) {
+        this._settings.disconnect(this._btSettingsId);
+        this._btSettingsId = null;
       }
       this._settings = null;
     }
