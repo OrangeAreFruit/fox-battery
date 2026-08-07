@@ -117,8 +117,20 @@ export default class BatteryIndicatorIcon extends Extension {
       );
     }
 
-    // WiFi 图标替换（顶栏），开关在面板设置里
+    // WiFi 图标替换（顶栏），开关在面板设置里，实时监听设置变化：
+    // 关闭时立即还原系统原图标，开启时（重新）替换
     this._settings = this.getSettings();
+    this._wifiSettingsId = this._settings.connect(
+      'changed::replace-wifi-icon',
+      () => {
+        if (this._settings.get_boolean('replace-wifi-icon')) {
+          this._wifiRetries = 0;
+          this._initWifiIcon(qs);
+        } else {
+          this._unpatchWifiIcon();
+        }
+      }
+    );
     if (this._settings.get_boolean('replace-wifi-icon')) {
       this._wifiRetries = 0;
       this._initWifiIcon(qs);
@@ -403,6 +415,10 @@ export default class BatteryIndicatorIcon extends Extension {
     // WiFi 顶栏图标清理（不依赖 setupDone，enable 后随时可能已 patch）
     this._unpatchWifiIcon();
     if (this._settings) {
+      if (this._wifiSettingsId) {
+        this._settings.disconnect(this._wifiSettingsId);
+        this._wifiSettingsId = null;
+      }
       this._settings = null;
     }
 
