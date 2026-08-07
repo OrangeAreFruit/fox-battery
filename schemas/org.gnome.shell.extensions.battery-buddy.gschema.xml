@@ -12,5 +12,15 @@
       <summary>Replace WiFi icon</summary>
       <description>Replace the system WiFi icon with a custom cartoon style icon (requires restart).</description>
     </key>
+    <key name="replace-bluetooth-icon" type="b">
+      <default>false</default>
+      <summary>Replace Bluetooth icon</summary>
+      <description>Replace the system Bluetooth icon with a custom cartoon style icon.</description>
+    </key>
+    <key name="replace-volume-icon" type="b">
+      <default>false</default>
+      <summary>Replace volume icon</summary>
+      <description>Replace the system volume icon with a custom cartoon style icon.</description>
+    </key>
   </schema>
 </schemalist>

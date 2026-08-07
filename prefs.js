@@ -64,6 +64,10 @@ const I18N = {
         bluetoothGroupDesc: '替换系统蓝牙图标（切换即时生效）',
         bluetoothReplaceTitle: '启用自定义蓝牙图标',
         bluetoothReplaceSubtitle: '使用狐狸风格的彩色蓝牙图标',
+        volumeGroupTitle: '音量图标',
+        volumeGroupDesc: '替换系统音量图标（切换即时生效）',
+        volumeReplaceTitle: '启用自定义音量图标',
+        volumeReplaceSubtitle: '使用狐狸风格的彩色音量图标',
     },
     en: {
         pageTitle: 'General',
@@ -94,6 +98,10 @@ const I18N = {
         bluetoothGroupDesc: 'Replace the system Bluetooth icon (takes effect immediately)',
         bluetoothReplaceTitle: 'Enable custom Bluetooth icon',
         bluetoothReplaceSubtitle: 'Use a colorful fox-style Bluetooth icon',
+        volumeGroupTitle: 'Volume Icon',
+        volumeGroupDesc: 'Replace the system volume icon (takes effect immediately)',
+        volumeReplaceTitle: 'Enable custom volume icon',
+        volumeReplaceSubtitle: 'Use a colorful fox-style volume icon',
     },
 };
 
@@ -243,9 +251,28 @@ export default class BatteryBuddyPreferences extends ExtensionPreferences {
 
         btGroup.add(btSwitch);
 
+        // 音量图标替换开关
+        const volGroup = new Adw.PreferencesGroup({
+            title: t('volumeGroupTitle'),
+            description: t('volumeGroupDesc'),
+        });
+
+        const volSwitch = new Adw.SwitchRow({
+            title: t('volumeReplaceTitle'),
+            subtitle: t('volumeReplaceSubtitle'),
+            active: this._settings.get_boolean('replace-volume-icon'),
+        });
+
+        volSwitch.connect('notify::active', () => {
+            this._settings.set_boolean('replace-volume-icon', volSwitch.active);
+        });
+
+        volGroup.add(volSwitch);
+
         page.add(group);
         page.add(wifiGroup);
         page.add(btGroup);
+        page.add(volGroup);
         page.add(langGroup);
         this._window.add(page);
         this._page = page;
