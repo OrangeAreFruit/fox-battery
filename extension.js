@@ -20,7 +20,7 @@ import { PowerManagerProxyMock } from './modules/mock.js';
 import { debugMode } from './modules/util.js';
 
 // ===== WiFi 图标（信号格样式，3 级信号）=====
-// 参考 preview/04-信号格.svg：3 根柱子外框始终存在（未填充的镂空），
+// 3 根柱子外框始终存在（未填充的镂空），
 // 状态区别在于蓝色填充数量：weak=1格、medium=2格、strong=3格
 // 蓝色 #38BDF8 与狐狸电池图标一致，外框黑色
 const WIFI_SVGS = {
