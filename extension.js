@@ -172,6 +172,9 @@ export default class BatteryIndicatorIcon extends Extension {
     this._wifiSettingsId = this._settings.connect(
       'changed::replace-wifi-icon',
       () => {
+        // disable() 置空 _settings 后，已排队的 changed 信号仍可能触发，需防御
+        if (!this._settings)
+          return;
         if (this._settings.get_boolean('replace-wifi-icon')) {
           this._wifiRetries = 0;
           this._initWifiIcon(qs);
