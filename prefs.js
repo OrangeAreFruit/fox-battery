@@ -33,6 +33,13 @@ const LANG_OPTIONS = [
     {value: 'en', labels: {zh: 'English', en: 'English'}},
 ];
 
+// WiFi 图标样式选项：value 为 GSettings 存储值，labels 为各语言下的显示名
+const WIFI_STYLE_OPTIONS = [
+    {value: 'default', labels: {zh: '系统默认', en: 'System default'}},
+    {value: 'white', labels: {zh: '简约白', en: 'Minimal white'}},
+    {value: 'blue', labels: {zh: '清新蓝', en: 'Fresh blue'}},
+];
+
 // 界面文案（简化）
 const I18N = {
     zh: {
@@ -58,8 +65,8 @@ const I18N = {
         copied: '已复制到剪贴板',
         wifiGroupTitle: 'WiFi 图标',
         wifiGroupDesc: '替换系统 WiFi 图标（切换即时生效）',
-        wifiReplaceTitle: '启用自定义 WiFi 图标',
-        wifiReplaceSubtitle: '使用狐狸风格的彩色 WiFi 图标',
+        wifiStyleTitle: 'WiFi 图标样式',
+        wifiStyleSubtitle: '选择顶栏 WiFi 图标的样式',
         bluetoothGroupTitle: '蓝牙图标',
         bluetoothGroupDesc: '替换系统蓝牙图标（切换即时生效）',
         bluetoothReplaceTitle: '启用自定义蓝牙图标',
@@ -92,8 +99,8 @@ const I18N = {
         copied: 'Copied to clipboard',
         wifiGroupTitle: 'WiFi Icon',
         wifiGroupDesc: 'Replace the system WiFi icon (takes effect immediately)',
-        wifiReplaceTitle: 'Enable custom WiFi icon',
-        wifiReplaceSubtitle: 'Use a colorful fox-style WiFi icon',
+        wifiStyleTitle: 'WiFi icon style',
+        wifiStyleSubtitle: 'Choose the style of the top bar WiFi icon',
         bluetoothGroupTitle: 'Bluetooth Icon',
         bluetoothGroupDesc: 'Replace the system Bluetooth icon (takes effect immediately)',
         bluetoothReplaceTitle: 'Enable custom Bluetooth icon',
@@ -215,23 +222,30 @@ export default class BatteryBuddyPreferences extends ExtensionPreferences {
         const langGroup = new Adw.PreferencesGroup();
         langGroup.add(langCombo);
 
-        // WiFi 图标替换开关
+        // WiFi 图标样式下拉
         const wifiGroup = new Adw.PreferencesGroup({
             title: t('wifiGroupTitle'),
             description: t('wifiGroupDesc'),
         });
 
-        const wifiSwitch = new Adw.SwitchRow({
-            title: t('wifiReplaceTitle'),
-            subtitle: t('wifiReplaceSubtitle'),
-            active: this._settings.get_boolean('replace-wifi-icon'),
+        const wifiStyleCombo = new Adw.ComboRow({
+            title: t('wifiStyleTitle'),
+            subtitle: t('wifiStyleSubtitle'),
+            model: new Gtk.StringList({
+                strings: WIFI_STYLE_OPTIONS.map(o => o.labels[this._lang]),
+            }),
+        });
+        wifiStyleCombo.selected = WIFI_STYLE_OPTIONS.findIndex(
+            o => o.value === this._settings.get_string('wifi-icon-style'));
+
+        wifiStyleCombo.connect('notify::selected', () => {
+            const opt = WIFI_STYLE_OPTIONS[wifiStyleCombo.selected];
+            if (!opt)
+                return;
+            this._settings.set_string('wifi-icon-style', opt.value);
         });
 
-        wifiSwitch.connect('notify::active', () => {
-            this._settings.set_boolean('replace-wifi-icon', wifiSwitch.active);
-        });
-
-        wifiGroup.add(wifiSwitch);
+        wifiGroup.add(wifiStyleCombo);
 
         // 蓝牙图标替换开关
         const btGroup = new Adw.PreferencesGroup({

@@ -7,10 +7,10 @@
       <summary>Interface language</summary>
       <description>One of: auto (follow system), zh (Chinese), en (English).</description>
     </key>
-    <key name="replace-wifi-icon" type="b">
-      <default>false</default>
-      <summary>Replace WiFi icon</summary>
-      <description>Replace the system WiFi icon with a custom cartoon style icon (requires restart).</description>
+    <key name="wifi-icon-style" type="s">
+      <default>'default'</default>
+      <summary>WiFi icon style</summary>
+      <description>One of: default (system), white (minimal white), blue (fresh blue).</description>
     </key>
     <key name="replace-bluetooth-icon" type="b">
       <default>false</default>
